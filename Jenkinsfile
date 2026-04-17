@@ -191,7 +191,16 @@ pipeline {
 
         // ==================== DEPLOY TO DEV ====================
         stage('Deploy to Dev') {
-            when { branch 'develop' }
+            when {
+                allOf {
+                    branch 'develop'
+                    expression {
+                        try {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'dev-ssh-key', keyFileVariable: 'KEY')]) { return true }
+                        } catch (Exception e) { return false }
+                    }
+                }
+            }
             steps {
                 script {
                     echo "Deploying ${SERVICE_NAME}:${env.ENV_IMAGE_TAG} to DEV..."
@@ -208,9 +217,16 @@ pipeline {
         // ==================== DEPLOY TO QA ====================
         stage('Deploy to QA') {
             when {
-                anyOf {
-                    branch pattern: 'release/.*', comparator: 'REGEXP'
-                    branch 'qa'
+                allOf {
+                    anyOf {
+                        branch pattern: 'release/.*', comparator: 'REGEXP'
+                        branch 'qa'
+                    }
+                    expression {
+                        try {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'qa-ssh-key', keyFileVariable: 'KEY')]) { return true }
+                        } catch (Exception e) { return false }
+                    }
                 }
             }
             steps {
@@ -228,7 +244,16 @@ pipeline {
 
         // ==================== STAGING DEPLOY + SMOKE ====================
         stage('Deploy to Staging') {
-            when { branch 'main' }
+            when {
+                allOf {
+                    branch 'main'
+                    expression {
+                        try {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'staging-ssh-key', keyFileVariable: 'KEY')]) { return true }
+                        } catch (Exception e) { return false }
+                    }
+                }
+            }
             steps {
                 script {
                     echo "Deploying ${SERVICE_NAME}:${env.ENV_IMAGE_TAG} to STAGING..."
@@ -256,7 +281,16 @@ pipeline {
 
         // ==================== PRODUCTION APPROVAL ====================
         stage('Production Approval') {
-            when { branch 'main' }
+            when {
+                allOf {
+                    branch 'main'
+                    expression {
+                        try {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'production-ssh-key', keyFileVariable: 'KEY')]) { return true }
+                        } catch (Exception e) { return false }
+                    }
+                }
+            }
             steps {
                 timeout(time: 2, unit: 'HOURS') {
                     input message: "Deploy ${SERVICE_NAME}:${env.ENV_IMAGE_TAG} to PRODUCTION?",
@@ -271,7 +305,16 @@ pipeline {
 
         // ==================== DEPLOY TO PRODUCTION ====================
         stage('Deploy to Production') {
-            when { branch 'main' }
+            when {
+                allOf {
+                    branch 'main'
+                    expression {
+                        try {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'production-ssh-key', keyFileVariable: 'KEY')]) { return true }
+                        } catch (Exception e) { return false }
+                    }
+                }
+            }
             steps {
                 script {
                     echo "Deploying ${SERVICE_NAME}:${env.ENV_IMAGE_TAG} to PRODUCTION..."
